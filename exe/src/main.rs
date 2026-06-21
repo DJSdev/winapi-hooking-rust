@@ -7,6 +7,7 @@ use std::{
 };
 
 use util::find_func_addr;
+use windows::Win32::Foundation::GetLastError;
 #[allow(unused_imports)]
 use windows::{
     core::{s, BOOL, PCSTR},
@@ -19,7 +20,8 @@ use windows::{
 };
 
 use crate::instructions::{
-    alloc_trampoline_mem_near_address, build_trampoline, init_relay_function, install_hook, byte_len_instructions, pad_relay_function, steal_bytes
+    alloc_trampoline_mem_near_address, build_trampoline, byte_len_instructions,
+    init_relay_function, install_hook, pad_relay_function, steal_bytes,
 };
 
 type MessageBoxASig = unsafe extern "system" fn(HWND, PCSTR, PCSTR, u32) -> i32;
@@ -30,19 +32,38 @@ type SleepSig = unsafe extern "system" fn(u32) -> c_void;
 // Global pointer to the trampoline code
 static P_TRAMPOLINE: AtomicPtr<()> = AtomicPtr::new(std::ptr::null_mut());
 
+enum TestFuncs {
+    MessageBox,
+    GetCursorPos,
+    GetClipboardData,
+    Sleep,
+}
+
 fn main() {
-    // let func_addr = find_func_addr("user32.dll", "MessageBoxA").unwrap();
-    let func_addr = find_func_addr("user32.dll", "GetCursorPos").unwrap();
-    // let func_addr = find_func_addr("user32.dll", "GetClipboardData").unwrap();
-    // let func_addr = find_func_addr("Kernel32.dll", "Sleep").unwrap();
+    // Change this here to test other functions
+    let test_func = TestFuncs::MessageBox;
+
+    let (func_addr, proxy_func) = match test_func {
+        TestFuncs::MessageBox => (
+            find_func_addr("user32.dll", "MessageBoxA").unwrap(),
+            message_box_a_proxy_func as *const c_void,
+        ),
+        TestFuncs::GetCursorPos => (
+            find_func_addr("user32.dll", "GetCursorPos").unwrap(),
+            get_cursor_pos_proxy as *const c_void,
+        ),
+        TestFuncs::GetClipboardData => (
+            find_func_addr("user32.dll", "GetClipboardData").unwrap(),
+            get_clipboard_data_proxy as *const c_void,
+        ),
+        TestFuncs::Sleep => (
+            find_func_addr("Kernel32.dll", "Sleep").unwrap(),
+            sleep_proxy as *const c_void,
+        ),
+    };
 
     // Use for disassembling
     println!("Actual Func: dis -s {func_addr:x?} -c 10 -b ");
-
-    // let proxy_func = message_box_a_proxy_func as *const c_void;
-    let proxy_func = get_cursor_pos_proxy as *const c_void;
-    // let proxy_func = get_clipboard_data_proxy as *const c_void;
-    // let proxy_func = sleep_proxy as *const c_void;
 
     // 1) Create the relay function that will overwrite the MessageBoxA function prologue
     let mut relay_func = init_relay_function(proxy_func);
@@ -57,7 +78,10 @@ fn main() {
     //     "Stolen bytes {:?}",
     //     byte_len_instructions(&stolen_bytes.instrs)
     // );
-    println!("Need {:?} more byte(s)", stolen_bytes.num_bytes - relay_func_len);
+    println!(
+        "Need {:?} more byte(s)",
+        stolen_bytes.num_bytes - relay_func_len
+    );
 
     // 4) Re-encode the relay function with no-ops
     //   * The relay function likely splits an instruction and breaks shit, so we need to ensure
@@ -80,24 +104,40 @@ fn main() {
     //     2) Disassemble actual function after copying: dis -s 0x7ffa4f4c8b70 -c 10 -b
     //     3) Disable trampoline function: dis -s 0x7ffa4f440000 -c 10 -b
 
-    // Need to calc 0x7ffe4fc5d22e + 0x4362a = 0x7ffe4fca0858 
+    // Need to calc 0x7ffe4fc5d22e + 0x4362a = 0x7ffe4fca0858
     P_TRAMPOLINE.store(trampoline.addr as *mut (), Ordering::Release);
 
     // 8) Install the hook
     install_hook(relay_func, func_addr, stolen_bytes);
 
-    // unsafe { MessageBoxA(None, s!("hello world"), s!("lmao"), MESSAGEBOX_STYLE(1)) };
+    match test_func {
+        TestFuncs::MessageBox => {
+            unsafe { MessageBoxA(None, s!("hello world"), s!("lmao"), MESSAGEBOX_STYLE(1)) };
+        }
+        TestFuncs::GetCursorPos => {
+            let mut point = POINT::default();
+            unsafe { GetCursorPos(&mut point).unwrap() };
+            println!("{point:?}");
+        }
+        TestFuncs::GetClipboardData => {
+            let c_data = unsafe { GetClipboardData(0) };
+            match c_data {
+                Ok(data) => println!("{:?}", data),
+                Err(err) => {
+                    let last_err = unsafe { GetLastError() };
+                    println!("{last_err:?} {err}");
+                }
+            }
+            
+        }
+        TestFuncs::Sleep => {
+            println!("eepy time");
+            unsafe { Sleep(5000) };
+            println!("waky waky");
+        }
+    }
 
-    // This doesn't work, I'm assuming because of the int3 instruction that is getting copied to the trampoline
-    let mut point = POINT::default();
-    unsafe { GetCursorPos(&mut point).unwrap() };
-    println!("{point:?}");
-
-    // let _ = unsafe { GetClipboardData(0) };
-
-    // println!("eepy time");
-    // unsafe { Sleep(5000) };
-    // println!("waky waky");
+    println!("Done");
 }
 
 #[no_mangle]
@@ -119,7 +159,7 @@ pub extern "system" fn message_box_a_proxy_func(
     let p = P_TRAMPOLINE.load(std::sync::atomic::Ordering::Acquire);
     let orig = unsafe { std::mem::transmute::<*mut (), MessageBoxASig>(p) };
 
-    let new_text = s!("hooged");
+    let new_text = s!("gotcha bitch");
 
     unsafe { orig(hwnd, new_text, lpcaption, utype) }
 }
@@ -136,7 +176,7 @@ pub extern "system" fn get_cursor_pos_proxy(mut lppoint: POINT) -> BOOL {
     lppoint.x = 69;
     lppoint.y = 420;
 
-    return unsafe { orig(lppoint) }
+    unsafe { orig(lppoint) }
 }
 
 #[no_mangle]
@@ -152,7 +192,7 @@ pub extern "system" fn get_clipboard_data_proxy(u_format: u32) -> HANDLE {
 }
 
 #[no_mangle]
-pub extern "system" fn sleep_proxy(ms: u32) -> () {
+pub extern "system" fn sleep_proxy(ms: u32) {
     println!("HOOKED");
     println!("  Milliseconds: {ms:?}");
 

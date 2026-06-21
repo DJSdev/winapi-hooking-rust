@@ -1,12 +1,16 @@
 use iced_x86::{
-    code_asm::*, BlockEncoder, BlockEncoderOptions, Code, Decoder, DecoderOptions, Instruction, InstructionBlock, OpKind, Register
+    code_asm::*, BlockEncoder, BlockEncoderOptions, Code, Decoder, DecoderOptions, Instruction,
+    InstructionBlock, Register,
 };
 use std::{cmp, ffi::c_void, ptr};
 use windows::Win32::System::{
-    Diagnostics::Debug::FlushInstructionCache, Memory::{
+    Diagnostics::Debug::FlushInstructionCache,
+    Memory::{
         VirtualAlloc, VirtualProtect, MEM_COMMIT, MEM_RESERVE, PAGE_EXECUTE_READWRITE,
         PAGE_PROTECTION_FLAGS, PAGE_READWRITE,
-    }, SystemInformation::{GetSystemInfo, SYSTEM_INFO}, Threading::GetCurrentProcess
+    },
+    SystemInformation::{GetSystemInfo, SYSTEM_INFO},
+    Threading::GetCurrentProcess,
 };
 
 use crate::util::HookError;
@@ -208,13 +212,13 @@ pub fn build_trampoline(
 
     let mut instructions = stolen_bytes.instrs.clone();
 
-    for mut i in instructions {
+    for i in &mut instructions {
         if i.code() == Code::Int3 {
             i.set_code(Code::Nop_rm16);
         }
     }
 
-    // Append `jmp to end of trampoline to "trampoline" back to the original function
+    // Append `jmp` to end of trampoline to "bounce" back to the original function
     //
     // ASM:
     //     mov r10, addr
@@ -232,9 +236,15 @@ pub fn build_trampoline(
     )
     .unwrap();
 
-    println!("Wrapping add func {:x?}", func_addr.wrapping_add(stolen_bytes.num_bytes));
+    println!(
+        "Wrapping add func {:x?}",
+        func_addr.wrapping_add(stolen_bytes.num_bytes)
+    );
     println!("RIP: {:x?}", encoded_instrs.rip);
-    println!("Dst Hook Trampoline: dis -s {:x?} -c 10 -b", dst_hook_mem.addr);
+    println!(
+        "Dst Hook Trampoline: dis -s {:x?} -c 10 -b",
+        dst_hook_mem.addr
+    );
 
     unsafe {
         std::ptr::copy_nonoverlapping(
@@ -249,7 +259,7 @@ pub fn build_trampoline(
         VirtualProtect(
             dst_hook_mem.addr,
             encoded_instrs.code_buffer.len(),
-            PAGE_EXECUTE_READWRITE, // Set to ReadWriteExecute 
+            PAGE_EXECUTE_READWRITE, // Set to ReadWriteExecute
             &mut PAGE_PROTECTION_FLAGS::default(),
         )
         .expect("Unable to change access permissions on Destination Hook memory")
@@ -264,7 +274,11 @@ pub fn build_trampoline(
 ///
 /// * `func_addr`: Address of function to hook (from `GetProcAddress()`)
 /// * `proxy_func`: Address to overwrite the original function with
-pub fn install_hook(relay_function: RelayFunction, func_addr: *const c_void, stolen_bytes: StolenBytes) {
+pub fn install_hook(
+    relay_function: RelayFunction,
+    func_addr: *const c_void,
+    stolen_bytes: StolenBytes,
+) {
     println!("\nInstalling hook...");
 
     println!("target func addr {func_addr:x?}");
@@ -354,16 +368,16 @@ pub fn init_relay_function(proxy_func: *const c_void) -> RelayFunction {
 }
 
 /// Pad the relay function with `nops` up to a certain bytes length
-/// 
+///
 /// # Arguments
-/// 
+///
 /// * `relay_func` - Vec of instructions to append to
 /// * `n_nops` - number of nops in order to add to function
-/// 
+///
 /// # Returns
-/// 
+///
 /// - `RelayFunction` A vec of instructions representing the following with N nops appended
-/// 
+///
 /// ```asm
 /// mov r10, proxy_func
 /// jmp r10
