@@ -1,7 +1,4 @@
-use std::{
-    ffi::c_void,
-    sync::atomic::AtomicPtr,
-};
+use std::{ffi::c_void, sync::atomic::AtomicPtr};
 
 use windows::{
     core::{s, PCSTR},
@@ -28,10 +25,10 @@ impl HookableFunc for MessageBoxAFunc {
     }
 
     fn set_p_trampoline(trampoline: crate::instructions::TrampolineMem) {
-        P_TRAMPOLINE
-            .lock()
-            .unwrap()
-            .insert(MessageBoxAFunc::NAME, AtomicPtr::new(trampoline.addr as *mut ()));
+        P_TRAMPOLINE.lock().unwrap().insert(
+            MessageBoxAFunc::NAME,
+            AtomicPtr::new(trampoline.addr as *mut ()),
+        );
     }
 
     fn invoke() -> () {
