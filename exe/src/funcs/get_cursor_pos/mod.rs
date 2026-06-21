@@ -26,7 +26,7 @@ impl HookableFunc for GetCursorPosFunc {
         );
     }
 
-    fn invoke() -> () {
+    fn invoke() {
         let mut point = POINT::default();
         unsafe { GetCursorPos(&mut point).unwrap() };
         println!("{point:?}");

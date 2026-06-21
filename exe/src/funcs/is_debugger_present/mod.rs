@@ -1,6 +1,6 @@
 use crate::{funcs::HookableFunc, util::find_func_addr, P_TRAMPOLINE};
 use std::{ffi::c_void, sync::atomic::AtomicPtr};
-use windows::{Win32::System::Diagnostics::Debug::IsDebuggerPresent, core::BOOL};
+use windows::{core::BOOL, Win32::System::Diagnostics::Debug::IsDebuggerPresent};
 
 type IsDebuggerPresentSig = unsafe extern "system" fn() -> BOOL;
 
@@ -23,7 +23,7 @@ impl HookableFunc for IsDebuggerPresentFunc {
         );
     }
 
-    fn invoke() -> () {
+    fn invoke() {
         let d = unsafe { IsDebuggerPresent() };
         println!("IsDebuggerPresent: {:?}", d);
     }
@@ -39,6 +39,6 @@ pub extern "system" fn is_debugger_present_proxy() -> BOOL {
         .unwrap()
         .load(std::sync::atomic::Ordering::Acquire);
     let orig = unsafe { std::mem::transmute::<*mut (), IsDebuggerPresentSig>(p) };
-    // unsafe { orig() }
+    let _ = unsafe { orig() };
     BOOL(1)
 }

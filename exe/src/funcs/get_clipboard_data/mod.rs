@@ -26,7 +26,7 @@ impl HookableFunc for GetClipboardDataFunc {
         );
     }
 
-    fn invoke() -> () {
+    fn invoke() {
         let c_data = unsafe { GetClipboardData(0) };
         match c_data {
             Ok(data) => println!("{:?}", data),

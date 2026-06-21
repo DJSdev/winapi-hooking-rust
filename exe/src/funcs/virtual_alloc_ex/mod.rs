@@ -1,6 +1,9 @@
 use crate::{funcs::HookableFunc, util::find_func_addr, P_TRAMPOLINE};
 use std::{ffi::c_void, sync::atomic::AtomicPtr};
-use windows::Win32::{Foundation::HANDLE, System::Memory::{PAGE_PROTECTION_FLAGS, VIRTUAL_ALLOCATION_TYPE, VirtualAllocEx}};
+use windows::Win32::{
+    Foundation::HANDLE,
+    System::Memory::{VirtualAllocEx, PAGE_PROTECTION_FLAGS, VIRTUAL_ALLOCATION_TYPE},
+};
 
 type VirtualAllocExSig =
     unsafe extern "system" fn(HANDLE, *const c_void, usize, u32, u32) -> *mut c_void;
@@ -24,7 +27,7 @@ impl HookableFunc for VirtualAllocExFunc {
         );
     }
 
-    fn invoke() -> () {
+    fn invoke() {
         let current_process = unsafe { windows::Win32::System::Threading::GetCurrentProcess() };
         let ptr = unsafe {
             VirtualAllocEx(
@@ -32,7 +35,7 @@ impl HookableFunc for VirtualAllocExFunc {
                 None,
                 0x1000,
                 VIRTUAL_ALLOCATION_TYPE::default(),
-                PAGE_PROTECTION_FLAGS::default()
+                PAGE_PROTECTION_FLAGS::default(),
             )
         };
 

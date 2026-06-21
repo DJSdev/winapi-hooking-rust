@@ -24,7 +24,7 @@ impl HookableFunc for ExitProcessFunc {
         );
     }
 
-    fn invoke() -> () {
+    fn invoke() {
         unsafe { ExitProcess(0) };
     }
 }

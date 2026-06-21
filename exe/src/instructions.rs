@@ -291,7 +291,7 @@ pub fn install_hook(
         VirtualProtect(
             func_addr,
             encoded_instrs.len(),
-            PAGE_READWRITE,
+            PAGE_EXECUTE_READWRITE,
             &mut original_protect,
         )
         .expect("Unable to change access permissions to memory")

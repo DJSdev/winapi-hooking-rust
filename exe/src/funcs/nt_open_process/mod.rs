@@ -24,7 +24,7 @@ impl HookableFunc for NtOpenProcessFunc {
         );
     }
 
-    fn invoke() -> () {
+    fn invoke() {
         let (func_addr, _) = Self::get_addr_and_proxy();
         let func = unsafe { std::mem::transmute::<*const c_void, NtOpenProcessSig>(func_addr) };
         let mut handle = HANDLE::default();

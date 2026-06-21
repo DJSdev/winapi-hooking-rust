@@ -31,7 +31,7 @@ impl HookableFunc for MessageBoxAFunc {
         );
     }
 
-    fn invoke() -> () {
+    fn invoke() {
         unsafe { MessageBoxA(None, s!("hello world"), s!("lmao"), MESSAGEBOX_STYLE(1)) };
     }
 }

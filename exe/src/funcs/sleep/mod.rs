@@ -23,7 +23,7 @@ impl HookableFunc for SleepFunc {
             .insert(SleepFunc::NAME, AtomicPtr::new(trampoline.addr as *mut ()));
     }
 
-    fn invoke() -> () {
+    fn invoke() {
         println!("eepy time");
         unsafe { Sleep(5000) };
         println!("waky waky");

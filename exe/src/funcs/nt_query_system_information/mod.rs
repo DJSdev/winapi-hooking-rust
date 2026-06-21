@@ -23,7 +23,7 @@ impl HookableFunc for NtQuerySystemInformationFunc {
         );
     }
 
-    fn invoke() -> () {
+    fn invoke() {
         let (func_addr, _) = Self::get_addr_and_proxy();
         let func =
             unsafe { std::mem::transmute::<*const c_void, NtQuerySystemInformationSig>(func_addr) };

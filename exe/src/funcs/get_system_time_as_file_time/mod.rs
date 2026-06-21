@@ -24,9 +24,9 @@ impl HookableFunc for GetSystemTimeAsFileTimeFunc {
         );
     }
 
-    fn invoke() -> () {
+    fn invoke() {
         let time = unsafe { GetSystemTimeAsFileTime() };
-        println!("{:?}", {time});
+        println!("{:?}", { time });
     }
 }
 
