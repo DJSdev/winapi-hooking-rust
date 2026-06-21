@@ -63,3 +63,9 @@ cargo run -p rs-test -- --target get-cursor-pos
 # Run the Sleep hook test
 cargo run -p rs-test -- --target sleep
 ```
+
+## Resources
+
+[1] https://kylehalladay.com/blog/2020/11/13/Hooking-By-Example.html
+[2] https://itm8.com/articles/user-mode-api-hooks-and-bypasses
+[3] https://www.bordergate.co.uk/x64-in-line-function-hooking/
