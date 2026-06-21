@@ -1,3 +1,5 @@
+use windows::Win32::System::Threading::ExitProcess;
+
 use crate::{funcs::HookableFunc, util::find_func_addr, P_TRAMPOLINE};
 use std::{ffi::c_void, sync::atomic::AtomicPtr};
 
@@ -23,9 +25,7 @@ impl HookableFunc for ExitProcessFunc {
     }
 
     fn invoke() -> () {
-        let (func_addr, _) = Self::get_addr_and_proxy();
-        let func = unsafe { std::mem::transmute::<*const c_void, ExitProcessSig>(func_addr) };
-        unsafe { func(0) };
+        unsafe { ExitProcess(0) };
     }
 }
 

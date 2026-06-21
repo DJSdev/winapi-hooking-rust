@@ -1,6 +1,8 @@
 use crate::{funcs::HookableFunc, util::find_func_addr, P_TRAMPOLINE};
 use std::{ffi::c_void, sync::atomic::AtomicPtr};
-use windows::Win32::Foundation::HANDLE;
+use windows::Win32::Foundation::{GENERIC_WRITE, HANDLE};
+use windows::Win32::Storage::FileSystem::{CreateFileW, FILE_ATTRIBUTE_NORMAL, FILE_SHARE_READ, OPEN_ALWAYS};
+use windows::core::w;
 
 type CreateFileWSig =
     unsafe extern "system" fn(*const u16, u32, u32, *mut c_void, u32, u32, HANDLE) -> HANDLE;
@@ -25,22 +27,7 @@ impl HookableFunc for CreateFileWFunc {
     }
 
     fn invoke() -> () {
-        let (func_addr, _) = Self::get_addr_and_proxy();
-        let func = unsafe { std::mem::transmute::<*const c_void, CreateFileWSig>(func_addr) };
-        let path: Vec<u16> = "C:\\Windows\\System32\\notepad.exe\0"
-            .encode_utf16()
-            .collect();
-        let handle = unsafe {
-            func(
-                path.as_ptr(),
-                0x80000000,
-                1,
-                std::ptr::null_mut(),
-                3,
-                0x80,
-                HANDLE::default(),
-            )
-        };
+        let handle = unsafe { CreateFileW(w!("%USERPROFILE%\\test.txt"), GENERIC_WRITE.0, FILE_SHARE_READ, None, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, Some(HANDLE::default())) };
         println!("CreateFileW handle: {:?}", handle);
     }
 }

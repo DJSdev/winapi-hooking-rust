@@ -1,3 +1,5 @@
+use windows::Win32::System::SystemInformation::GetSystemTimeAsFileTime;
+
 use crate::{funcs::HookableFunc, util::find_func_addr, P_TRAMPOLINE};
 use std::{ffi::c_void, sync::atomic::AtomicPtr};
 
@@ -23,12 +25,8 @@ impl HookableFunc for GetSystemTimeAsFileTimeFunc {
     }
 
     fn invoke() -> () {
-        let (func_addr, _) = Self::get_addr_and_proxy();
-        let func =
-            unsafe { std::mem::transmute::<*const c_void, GetSystemTimeAsFileTimeSig>(func_addr) };
-        let mut file_time = [0u8; 8];
-        unsafe { func(file_time.as_mut_ptr() as *mut c_void) };
-        println!("GetSystemTimeAsFileTime: {:?}", file_time);
+        let time = unsafe { GetSystemTimeAsFileTime() };
+        println!("{:?}", {time});
     }
 }
 
