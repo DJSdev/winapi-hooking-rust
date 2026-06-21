@@ -214,7 +214,7 @@ pub fn build_trampoline(
 
     for i in &mut instructions {
         if i.code() == Code::Int3 {
-            i.set_code(Code::Nop_rm16);
+            i.set_code(Code::Nopd);
         }
     }
 

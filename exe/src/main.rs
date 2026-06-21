@@ -25,9 +25,9 @@ use crate::instructions::{
 };
 
 type MessageBoxASig = unsafe extern "system" fn(HWND, PCSTR, PCSTR, u32) -> i32;
-type GetCursorPosSig = unsafe extern "system" fn(POINT) -> BOOL;
+type GetCursorPosSig = unsafe extern "system" fn(*mut POINT) -> BOOL;
 type GetClipboardDataSig = unsafe extern "system" fn(u32) -> HANDLE;
-type SleepSig = unsafe extern "system" fn(u32) -> c_void;
+type SleepSig = unsafe extern "system" fn(u32);
 
 // Global pointer to the trampoline code
 static P_TRAMPOLINE: AtomicPtr<()> = AtomicPtr::new(std::ptr::null_mut());
@@ -41,7 +41,7 @@ enum TestFuncs {
 
 fn main() {
     // Change this here to test other functions
-    let test_func = TestFuncs::MessageBox;
+    let test_func = TestFuncs::GetCursorPos;
 
     let (func_addr, proxy_func) = match test_func {
         TestFuncs::MessageBox => (
@@ -128,7 +128,6 @@ fn main() {
                     println!("{last_err:?} {err}");
                 }
             }
-            
         }
         TestFuncs::Sleep => {
             println!("eepy time");
@@ -165,7 +164,7 @@ pub extern "system" fn message_box_a_proxy_func(
 }
 
 #[no_mangle]
-pub extern "system" fn get_cursor_pos_proxy(mut lppoint: POINT) -> BOOL {
+pub extern "system" fn get_cursor_pos_proxy(lppoint: *mut POINT) -> BOOL {
     println!("HOOKED");
     println!("  lppoint: {lppoint:?}");
 
@@ -173,10 +172,16 @@ pub extern "system" fn get_cursor_pos_proxy(mut lppoint: POINT) -> BOOL {
     let p = P_TRAMPOLINE.load(std::sync::atomic::Ordering::Acquire);
     let orig = unsafe { std::mem::transmute::<*mut (), GetCursorPosSig>(p) };
 
-    lppoint.x = 69;
-    lppoint.y = 420;
+    let res = unsafe { orig(lppoint) };
+    
+    unsafe {
+        if !lppoint.is_null() {
+            (*lppoint).x = 69;
+            (*lppoint).y = 420;
+        }
+    }
 
-    unsafe { orig(lppoint) }
+    res
 }
 
 #[no_mangle]
