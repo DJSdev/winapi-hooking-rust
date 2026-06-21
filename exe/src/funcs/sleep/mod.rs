@@ -44,5 +44,5 @@ pub extern "system" fn sleep_proxy(ms: u32) {
     let orig = unsafe { std::mem::transmute::<*mut (), SleepSig>(p) };
 
     println!("Actually sleeping for 2 seconds");
-    unsafe { orig(2) };
+    unsafe { orig(2000) };
 }

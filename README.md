@@ -18,12 +18,46 @@ All hooking logic is implemented in [exe/src/instructions.rs](exe/src/instructio
 
 ## Build
 
+To build the entire workspace (both the executable and the DLL):
+
 ```bash
 cargo build
 ```
 
 ## Run
 
+The `rs-test` executable includes a CLI to specify which Win32 API function you want to hook and test. By default, it hooks `MessageBoxA`.
+
+To run the program, use:
+
 ```bash
-cargo run
+cargo run -p rs-test -- --target <TARGET>
+```
+
+### Available Targets
+
+The following functions are currently supported for hooking tests:
+- `message-box-a` (default)
+- `get-cursor-pos`
+- `get-clipboard-data`
+- `sleep`
+- `is-debugger-present`
+- `get-system-time-as-file-time`
+- `exit-process`
+- `create-file-w`
+- `virtual-alloc-ex`
+- `nt-query-system-information`
+- `nt-open-process`
+
+### Examples
+
+```bash
+# Run with the default target (MessageBoxA)
+cargo run -p rs-test
+
+# Run the GetCursorPos hook test
+cargo run -p rs-test -- --target get-cursor-pos
+
+# Run the Sleep hook test
+cargo run -p rs-test -- --target sleep
 ```

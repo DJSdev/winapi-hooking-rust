@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+clap = { version = "4.6.1", features = ["derive"] }
 windows = { version = "0.61.3", features = [
   "Win32_System_LibraryLoader",
   "Win32_System_Threading",

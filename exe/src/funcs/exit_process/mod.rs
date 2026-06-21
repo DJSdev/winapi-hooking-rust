@@ -39,5 +39,6 @@ pub extern "system" fn exit_process_proxy(exit_code: u32) {
         .unwrap()
         .load(std::sync::atomic::Ordering::Acquire);
     let orig = unsafe { std::mem::transmute::<*mut (), ExitProcessSig>(p) };
-    unsafe { orig(exit_code) }
+    println!("NOTE: Rust will throw an error due to a non-zero exit code");
+    unsafe { orig(42069) }
 }
